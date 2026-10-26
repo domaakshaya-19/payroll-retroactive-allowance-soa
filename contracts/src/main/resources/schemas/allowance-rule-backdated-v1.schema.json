@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AllowanceRuleBackdated v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "aggregateId": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 105
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "const": "AllowanceRuleBackdated"
+    },
+    "employeeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "allowanceType": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{0,39}$"
+    },
+    "oldVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "newVersion": {
+      "type": "integer",
+      "minimum": 2
+    },
+    "oldAmount": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 999999999999.99,
+      "multipleOf": 0.01
+    },
+    "newAmount": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 999999999999.99,
+      "multipleOf": 0.01
+    },
+    "effectiveFrom": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "eventId",
+    "aggregateId",
+    "schemaVersion",
+    "occurredAt",
+    "correlationId",
+    "eventType",
+    "employeeId",
+    "allowanceType",
+    "oldVersion",
+    "newVersion",
+    "oldAmount",
+    "newAmount",
+    "effectiveFrom"
+  ]
+}

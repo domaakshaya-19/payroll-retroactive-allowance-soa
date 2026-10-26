@@ -1,0 +1,9 @@
+.local/
+data/
+**/target/
+.env
+*.log
+*.mv.db
+*.trace.db
+*.pem
+*.key

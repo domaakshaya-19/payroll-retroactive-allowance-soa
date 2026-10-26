@@ -1,0 +1,2 @@
+package com.example.payroll.contracts;
+public record RetroRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max=80) String reference, @jakarta.validation.constraints.NotNull @jakarta.validation.constraints.DecimalMin("0.0") java.math.BigDecimal previouslyPaid, @jakarta.validation.constraints.NotNull @jakarta.validation.constraints.DecimalMin("0.0") java.math.BigDecimal correctedAmount) {}

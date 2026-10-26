@@ -1,0 +1,11 @@
+{
+  "statementId": 1,
+  "periodId": 1,
+  "employeeId": "EMP001",
+  "startsOn": "2026-08-01",
+  "endsOn": "2026-08-31",
+  "allowanceType": "HOUSING",
+  "ruleVersion": 1,
+  "originalAmount": 2000.0,
+  "issuedAt": "2026-08-31T00:00:00Z"
+}

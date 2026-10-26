@@ -1,0 +1,21 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <parent><groupId>com.example.payroll</groupId><artifactId>payroll-retro</artifactId><version>1.0.0-SNAPSHOT</version></parent>
+  <artifactId>verification</artifactId>
+  <description>Test-only executable system verification; this is not a seventh application.</description>
+  <dependencies>
+    <dependency><groupId>com.example.payroll</groupId><artifactId>contracts</artifactId><version>${project.version}</version><scope>test</scope></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.springframework.kafka</groupId><artifactId>spring-kafka-test</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.springframework.kafka</groupId><artifactId>spring-kafka</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>com.fasterxml.jackson.datatype</groupId><artifactId>jackson-datatype-jsr310</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>com.networknt</groupId><artifactId>json-schema-validator</artifactId><version>1.5.6</version><scope>test</scope></dependency>
+  </dependencies>
+  <build><plugins>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><configuration>
+      <argLine>-Xmx1024m -XX:ActiveProcessorCount=2</argLine>
+      <forkedProcessTimeoutInSeconds>900</forkedProcessTimeoutInSeconds>
+    </configuration></plugin>
+  </plugins></build>
+</project>

@@ -1,0 +1,13 @@
+# Verification harness readiness and failure diagnostics
+
+The earlier 50-request run reported 11 errors. Its Gateway log contains HTTP 500 responses caused by `AnnotatedConnectException` / `ConnectException` (connection refused) to the restarting Retro replica. Eureka registration was observed before that replica's authenticated HTTPS endpoint was serving. Five sequential warm-up successes did not establish readiness across both replicas. The old sampler discarded the actual statuses and exceptions.
+
+The harness now checks each replica directly, checks both Eureka registrations are UP, observes both instances through Gateway, and requires 12 consecutive successful Gateway readiness probes across discovery refreshes. Consumer replay also waits for direct service readiness and stable Gateway routing. These bounded setup probes are separate from the measured load sample; none of the 50 measured requests is retried by the test. The load assertion still requires exactly 50 requests and zero errors, and failover still requires every asserted request to succeed.
+
+`target/evidence/load-test.json` retains every measured status, exception class, backend instance and latency, alongside p50/p95/error rate. It contains no tokens, passwords or response bodies. A failed load assertion includes the failing samples and process state.
+
+Each startup wait prints its phase and elapsed time, checks child liveness, and reports exit codes, PIDs, recent HTTP outcomes and the ignored run log directory on failure. Individual waits are bounded; initial service startup also has a six-minute overall budget. Requests have connection and response timeouts. A Surefire EOFException indicates loss of the fork's command stream; a thread dump inside `await` alone does not establish an application crash. The added diagnostics distinguish service exits from readiness timeouts without treating EOF as a passing test.
+
+Cleanup is synchronized and idempotent, tracks application and helper processes owned by this run, bounds graceful waits and forced termination, waits for process exit, and preserves interruption. It runs on startup failure, test completion and JVM shutdown. Evidence-writing failure cannot bypass cleanup. Kafka client shutdown is also bounded. No application modules, security rules, business assertions or B1–B6 test cases were removed or disabled.
+
+Run the targeted suite with `mvn -B -ntp -pl verification -am test` after packaging the applications; then run `mvn -B -ntp verify` from the repository root. The targeted command includes the contracts module's one test as well as the ten system tests. Full root verification rebuilds the application jars before the system suite executes.

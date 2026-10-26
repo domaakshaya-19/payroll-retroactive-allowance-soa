@@ -1,0 +1,19 @@
+﻿{
+    "measuredAt":  "2026-10-26T12:53:39.4378396Z",
+    "eurekaApplicationNames":  [
+                                   "ALLOWANCE-RULE-SERVICE",
+                                   "API-GATEWAY",
+                                   "AUTH-SERVICE",
+                                   "DISCOVERY-SERVER",
+                                   "PAY-PERIOD-SERVICE",
+                                   "RETRO-ADJUSTMENT-SERVICE"
+                               ],
+    "retroInstancesBeforeStop":  2,
+    "gatewayObservedInstances":  [
+                                     "retro-adjustment-service:8083",
+                                     "retro-adjustment-service:8085"
+                                 ],
+    "stoppedPort":  8083,
+    "requestsAfterStop":  8,
+    "successfulRequestsAfterStop":  8
+}

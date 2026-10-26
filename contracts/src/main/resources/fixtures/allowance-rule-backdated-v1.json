@@ -1,0 +1,15 @@
+{
+  "eventId": "ebbe594b-59d3-4bf0-9c04-e97c466e69ca",
+  "aggregateId": "EMP001:HOUSING",
+  "schemaVersion": 1,
+  "occurredAt": "2026-10-25T00:00:00Z",
+  "correlationId": "f9c16f53-808a-449b-8b2b-a6df7385f557",
+  "eventType": "AllowanceRuleBackdated",
+  "employeeId": "EMP001",
+  "allowanceType": "HOUSING",
+  "oldVersion": 1,
+  "newVersion": 2,
+  "oldAmount": 2000.0,
+  "newAmount": 3000.0,
+  "effectiveFrom": "2026-08-01"
+}

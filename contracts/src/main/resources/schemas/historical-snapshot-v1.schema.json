@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HistoricalSnapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "statementId",
+    "periodId",
+    "employeeId",
+    "startsOn",
+    "endsOn",
+    "allowanceType",
+    "ruleVersion",
+    "originalAmount",
+    "issuedAt"
+  ],
+  "properties": {
+    "statementId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "periodId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "employeeId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "startsOn": {
+      "type": "string",
+      "format": "date"
+    },
+    "endsOn": {
+      "type": "string",
+      "format": "date"
+    },
+    "allowanceType": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ruleVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "originalAmount": {
+      "type": "number",
+      "minimum": 0,
+      "multipleOf": 0.01
+    },
+    "issuedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

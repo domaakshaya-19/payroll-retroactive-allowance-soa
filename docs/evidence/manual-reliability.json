@@ -1,0 +1,11 @@
+{
+    "measuredAt":  "2026-10-26T12:49:28.7826590Z",
+    "sameEventAdditionalDeliveries":  2,
+    "adjustmentsBefore":  2,
+    "adjustmentsAfterDuplicate":  2,
+    "consumerRestarted":  true,
+    "adjustmentsAfterRestartReplay":  2,
+    "invalidEventObservedInDlt":  true,
+    "dltErrorCode":  "UNSUPPORTED_SCHEMA_VERSION",
+    "result":  "PASSED"
+}

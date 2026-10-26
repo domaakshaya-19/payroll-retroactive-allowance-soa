@@ -1,0 +1,11 @@
+﻿{
+    "measuredAt":  "2026-10-25T17:16:17.7505638Z",
+    "command":  "mvn -Pcontract-negative -pl allowance-rule-service -am -Dtest=AllowanceWorkflowTest#producerMatchesPublishedConsumerSchema -Dsurefire.failIfNoSpecifiedTests=false test",
+    "mutation":  "Required field newAmount renamed to incompatible correctedAmount, in test payload only",
+    "exitCode":  1,
+    "tests":  1,
+    "failures":  1,
+    "errors":  0,
+    "skipped":  0,
+    "expectedFailureConfirmed":  true
+}

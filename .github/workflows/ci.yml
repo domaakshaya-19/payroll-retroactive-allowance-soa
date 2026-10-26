@@ -1,0 +1,28 @@
+name: payroll-retro B1-B6 verification
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Expected incompatible-contract failure, then complete green build
+        shell: pwsh
+        run: ./scripts/Verify-B1-B6.ps1 -IncludeContractBreak -EvidenceDirectory .local/ci-evidence
+      - name: Upload sanitized counts, measured load data and system facts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: payroll-verification-evidence
+          path: .local/ci-evidence/
+          if-no-files-found: warn
