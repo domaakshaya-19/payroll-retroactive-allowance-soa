@@ -32,7 +32,7 @@ docker compose up -d
 # The leading dot and space retain environment variables in THIS shell.
 . .\scripts\Initialize-Local.ps1
 
-# Explicit allowed browser origins; no wildcards. No frontend is included.
+# Explicit allowed browser origins; no wildcards. Vite uses HTTPS port 5173.
 $env:CORS_ORIGINS = 'https://localhost:3000,https://localhost:5173'
 $env:CLERK_EMPLOYEES = 'EMP001'
 $env:APPROVER_EMPLOYEES = 'EMP001'
@@ -55,6 +55,113 @@ Import-Certificate -FilePath .local\localhost.crt -CertStoreLocation Cert:\Curre
 ```
 
 This explicitly trusts your generated development certificate; remove it when finished. The JVMs use the dedicated trust store rather than your global Java trust store. Certificate lifetime is 365 days; replace expired files deliberately and restart clients with the replacement trust store.
+
+## React frontend (Windows PowerShell)
+
+The minimal React + Vite workspace is in `frontend/`. It uses only React, React DOM and Vite, with a committed npm lockfile. Use Node.js **22.12+** and npm ([Vite requirements](https://vite.dev/guide/)). In development, every browser API request, including login, uses same-origin `/api` paths at **https://localhost:5173**. Vite proxies these to **https://localhost:8080**, verifying TLS and preserving JWT Authorization headers. Production builds retain direct requests to **https://localhost:8080**. JWTs remain in memory and are cleared on logout, expiry, HTTP 401 or page reload. Gateway and domain services still validate and authorize every request.
+
+Keep the existing backend services running. Development uses the Vite proxy and needs no backend CORS change or restart. The browser does not send a cross-origin preflight to Gateway. Vite rewrites the upstream Host and removes the development Origin header so Spring does not reject the proxied POST as cross-origin; paths and Authorization headers pass through unchanged. Use `localhost`, not `127.0.0.1`, for the frontend origin. Production/preview direct requests still require the appropriate existing Gateway CORS configuration; the development proxy is not part of the production build or preview server.
+
+The frontend uses its **own mkcert certificate and private key** in ignored `frontend/.local/`. It never reads the backend `../.local/localhost.p12`, and does not need `TLS_KEYSTORE_PASSWORD`. Keep the backend certificate, environment secrets and databases unchanged. [mkcert's setup guide](https://github.com/FiloSottile/mkcert) documents the local certificate authority and Windows installation.
+
+Install mkcert once in Windows PowerShell:
+
+```powershell
+winget install --id FiloSottile.mkcert --exact --source winget
+# After installation, open a new PowerShell window so PATH is refreshed.
+```
+
+In the new window, create/trust the separate frontend certificate and start Vite:
+
+```powershell
+Set-Location C:\Users\sreej\OneDrive\Desktop\Payroll\frontend
+
+# Install mkcert's local CA into your machine's trust stores.
+# Approve the Windows trust prompt if shown.
+mkcert -install
+if ($LASTEXITCODE -ne 0) { throw 'mkcert trust installation failed' }
+
+New-Item -ItemType Directory -Force .\.local | Out-Null
+mkcert -cert-file .\.local\localhost.pem -key-file .\.local\localhost-key.pem localhost 127.0.0.1 ::1
+if ($LASTEXITCODE -ne 0) { throw 'Frontend certificate generation failed' }
+
+npm.cmd ci
+if ($LASTEXITCODE -ne 0) { throw 'Frontend dependency installation failed' }
+# Set before Node starts; trust the EXISTING backend public certificate.
+$env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\.local\localhost.crt).Path
+npm.cmd run dev
+# Open https://localhost:5173
+```
+
+For an existing working frontend certificate, run only these commands in PowerShell:
+
+```powershell
+Set-Location C:\Users\sreej\OneDrive\Desktop\Payroll\frontend
+$env:NODE_EXTRA_CA_CERTS = (Resolve-Path ..\.local\localhost.crt).Path
+npm.cmd run dev
+# Open https://localhost:5173
+```
+
+Node reads `NODE_EXTRA_CA_CERTS` at startup. Restart only Vite if it was started without this variable. It adds the existing backend public certificate to Node's trusted CAs; it does not access the backend keystore or change secrets. Never use `secure:false` or `NODE_TLS_REJECT_UNAUTHORIZED=0`.
+
+Keep the existing frontend leaf files; regenerate only those if they expire. Do not commit or share the generated private key or mkcert CA private key. The CA is maintained in mkcert's user-local storage, outside the backend configuration. Vite reads the PEM certificate/key only at startup, for both dev and preview; missing files produce a setup message. Build and tests do not require these files. There is no HTTP fallback or TLS validation bypass.
+
+Restart the browser after `mkcert -install`. Windows Edge/Chrome use the Windows trust store; browsers with a separate trust store may need the mkcert CA installed there as described in mkcert's guide. During development the browser connects only to Vite, and Node verifies Gateway TLS through `NODE_EXTRA_CA_CERTS`. For production/preview direct Gateway requests or manually opening Gateway in your browser, separately trust its existing public certificate if needed (from `frontend/`):
+
+```powershell
+Import-Certificate -FilePath ..\.local\localhost.crt -CertStoreLocation Cert:\CurrentUser\Root
+```
+
+In development, the browser Network tab should show login at `https://localhost:5173/api/auth/token`. If it still shows port 8080, reload the page from the dev server. Inspect the Vite terminal for proxy errors: `DEPTH_ZERO_SELF_SIGNED_CERT`, `SELF_SIGNED_CERT_IN_CHAIN` or `UNABLE_TO_VERIFY_LEAF_SIGNATURE` indicate Node trust issues. Confirm the certificate path above and restart only Vite. A Gateway 401 without authentication is expected; it does not indicate a TLS failure. No backend CORS settings are changed by this fix. Keep the frontend at port 5173. Do not rerun backend initialization, reset secrets or regenerate certificates to use this proxy.
+
+Select clerk or approver and enter the configured demo password yourself; no password is prefilled or embedded. EMP001 is selected when permitted by the signed employee claim. Clerk can submit a backdated rule with explicit expected version, amount and a first-of-month date; approver can approve individual DRAFT adjustments. Both can view all allowance versions, periods, immutable issued snapshots, event/workflow trace IDs and approved current-open total. Statement views expose no edit controls. The initial backend business date is 2026-10-25; the server enforces that bound. Backdating is asynchronous: use **Refresh records** to follow Kafka workflow completion. Refresh after a version conflict before resubmitting. The UI never retries a write automatically.
+
+For an untouched seeded EMP001, backdate HOUSING with expectedVersion 1, amount 3000.00, effective date 2026-08-01; wait/refresh for two DRAFT differences of 1000.00. Sign out and sign in as approver to approve both and see the current-open total of 2000.00. Use the actual latest version for existing databases; this UI does not reset or reseed data. Each later rule change follows the existing backend comparison semantics described below.
+
+Build and focused client verification, from `frontend/`:
+
+```powershell
+npm.cmd run build
+npm.cmd test
+# Optional: serve the built files over the same local HTTPS origin.
+# Uses the separate frontend/.local PEM certificate and key, just like dev.
+npm.cmd run preview
+```
+
+Build output goes to ignored `frontend/dist/`. The build does not require a certificate, live backend or secrets. The Node tests verify session/expiry handling, request paths, validation and HTTP errors using isolated fetch stubs; they are not a browser/backend end-to-end test. The application itself always uses real Gateway requests. Backend business logic, databases and Maven verification remain unchanged.
+
+### Phase 1 hackathon: read-only payroll exploration
+
+Both clerk and approver can use **Explore · Read only** above the existing write form. This phase adds no backend endpoints, persistence, events or dependencies. JWT/employee permissions, frontend HTTPS PEM files, the development Gateway proxy and production API configuration are unchanged.
+
+**What-If Payroll Simulator:** choose an existing allowance, enter a proposed monthly amount and a first-of-month effective date, then choose **Preview only**. It reads the employee records already loaded from Gateway and calculates locally. Only matching CLOSED issued periods starting on or after the proposed effective date are included, using each snapshot's original allowance and the prospective next rule version. The table shows original amount, corrected amount, monthly difference, source statement and existing approved differences; the summary shows affected months and gross adjustment. There is no save action in this view, no POST request and no Kafka publication. Previewing never fills or submits the separate real backdate form.
+
+For EMP001's original seeded August/September snapshots of 2000.00, proposing HOUSING 3000.00 from 2026-08-01 previews two differences of 1000.00, gross 2000.00. These values are calculated from live returned snapshots, not preloaded demo results. Existing databases can show different source amounts. Effective October 1 produces no affected closed periods for that seed. Reductions produce negative gross differences; unchanged amounts produce zero differences. Arithmetic uses BigInt integer cents, including totals, rather than floating-point subtraction. Missing/failed source API responses block exploration instead of appearing as a zero payroll result.
+
+Existing APPROVED differences are summed only for the same employee, allowance, source period and statement. They are displayed separately, not treated as cash paid and not deducted from the proposed gross. The original statement amount is the allowance recorded at issuance; the APIs do not independently confirm bank settlement. There is no accurate net-payable or outstanding-balance claim: settlement, taxes and deductions are not available. Successive rule changes follow the backend's existing comparison to original statements, not automatic netting against prior corrections. Preview does not validate server business-date bounds, concurrent version changes, workflow ordering or approval eligibility.
+
+**Payroll Time Machine:** select a payroll month to see its immutable original statement beside all currently known rule versions effective by that period's end, plus adjustments linked by source period/statement and triggering event. The issued rule version is identified explicitly. Adjustment status, target payment period and workflow status remain separate from the original amount. Open periods show no issued statement rather than an assumed paid amount. This is a period lens over today's records, not a historical database rollback or exact “as known then” reconstruction: rule creation/publication and settlement timestamps are not exposed by the current DTOs. Use the existing **Refresh records** button to reload source data; previews are cleared during refresh and are never persisted.
+
+The inspected existing GET contracts used by these views are:
+
+| Gateway path (all under `/api`) | Source of truth |
+| --- | --- |
+| `/allowances/employees/{employeeId}` | Immutable allowance versions, amounts and effective dates |
+| `/pay-periods/employees/{employeeId}` | Period dates and CLOSED/OPEN status |
+| `/pay-periods/employees/{employeeId}/snapshots` | Issued statement IDs, original amounts, original versions and issuance timestamps |
+| `/retro-adjustments/employees/{employeeId}` | Source statement/period, event, difference, approval status and target payroll |
+| `/retro-adjustments/employees/{employeeId}/workflows` | Event workflow status and trace identity |
+
+For the **CO-1 through CO-4** review, the official course-outcome definitions were not found in this repository, so exact numbering/assessment alignment remains to be confirmed against the hackathon rubric. Phase 1 supplies these concrete evidence areas without inventing outcome definitions:
+
+| Evidence area | Demonstration |
+| --- | --- |
+| Service boundaries and API contracts | PayPeriod owns original statements; AllowanceRule owns versions; RetroAdjustment owns corrections. UI explains this SOA division. |
+| Event choreography | UI explains real backdate → transactional outbox → Kafka → independent Retro processing; simulation has no event side effects. |
+| Integrity and traceability | Time Machine retains issued amounts and links corrections to statement, period and triggering event; approval is distinguished from settlement. |
+| Verification and responsible results | Exact-cent calculations and focused tests cover increases, decreases, no affected periods, approval separation, employee/type filtering, invalid inputs, source links and no mutation/network effects. |
+
+Run from `frontend/`: `npm.cmd run build` and `npm.cmd test`. Phase 1 execution: production build passed; **14 tests passed, 0 failures, 0 skipped** (six existing client tests plus eight exploration tests). Test DTO fixtures are isolated test inputs, not UI fallback data. No live browser/backend end-to-end run is claimed for this phase. No backend service, database or certificate was changed or restarted.
 
 ### Secrets and persistence
 
